@@ -7,4 +7,23 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Content Include="obj\Debug\net6.0\apphost.exe" />
+    <Content Include="obj\Debug\net6.0\WebServerProgram.AssemblyInfoInputs.cache" />
+    <Content Include="obj\Debug\net6.0\WebServerProgram.assets.cache" />
+    <Content Include="obj\Debug\net6.0\WebServerProgram.csproj.AssemblyReference.cache" />
+    <Content Include="obj\Debug\net6.0\WebServerProgram.csproj.CoreCompileInputs.cache" />
+    <Content Include="obj\Debug\net6.0\WebServerProgram.dll" />
+    <Content Include="obj\Debug\net6.0\WebServerProgram.genruntimeconfig.cache" />
+    <Content Include="obj\Debug\net6.0\WebServerProgram.pdb" />
+    <Content Include="obj\project.assets.json" />
+    <Content Include="obj\project.nuget.cache" />
+    <Content Include="obj\project.packagespec.json" />
+    <Content Include="obj\WebServerProgram.csproj.nuget.dgspec.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="obj\Debug\net6.0\.NETCoreApp,Version=v6.0.AssemblyAttributes.cs" />
+  </ItemGroup>
+
 </Project>

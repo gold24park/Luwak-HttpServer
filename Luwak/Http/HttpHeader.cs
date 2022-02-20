@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace WebServerProgram.Http;
 
 public class HttpHeader
