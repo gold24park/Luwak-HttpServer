@@ -6,13 +6,34 @@ namespace WebServerProgram
     {
         public static void Main(string[] args)
         {
-            // curl -X GET http://localhost:8080
+            SetPort(out int port, args);
             var httpServer = new HttpServer();
-            new Luwak(httpServer).Start(port: 8080).Wait();
+            new Luwak(httpServer).Start(port).Wait();
+            
             // Test();
         }
-        
 
+        private static void SetPort(out int port, string[] args)
+        {
+            port = 8080;
+            if (args.Length > 0)
+            {
+                try
+                {
+                    port = Int16.Parse(args[0]);
+                }
+                catch (FormatException e)
+                {
+                    Logger.Log("첫번째 Argument 값이 숫자가 아닙니다.", Logger.Level.Error);
+                }
+                catch (OverflowException e)
+                {
+                    Logger.Log("허용가능 Port 범위를 초과하였습니다.", Logger.Level.Error);
+                }
+            }
+        }
+
+        // curl -X GET http://localhost:8080
         public static void Test()
         {
             string input = @"

@@ -22,9 +22,12 @@ public class Luwak
         listener = new TcpListener(IPAddress.Any, port);
         listener.Start();
         
+        Logger.Log($"서버가 시작되었습니다. port={port}");
+
         while (true)
         {
             TcpClient client = await listener.AcceptTcpClientAsync();
+            // ThreadPool에서 새로운 Thread를 생성할지, Queue에 넣고 기존의 Thread가 끝나길 기다릴지 결정
             Task.Factory.StartNew(HandleConnection, client);
             CountConnections();
         }
@@ -35,7 +38,6 @@ public class Luwak
         TcpClient client = (TcpClient) o;
         NetworkStream stream = client.GetStream();
         await httpServer.process(stream);
-        Console.WriteLine("Close connection");
         stream.Close();
         client.Close();
     }
