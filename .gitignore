@@ -1,5 +1,3 @@
-.git
-.idea
-.vs
-bin
-obj
+.git/
+.idea/
+.vs/

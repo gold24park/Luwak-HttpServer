@@ -1,62 +1,98 @@
-using System.IO;
+using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.RegularExpressions;
 
 namespace WebServerProgram.Http;
 
 public class HttpRequest
 {
-    enum Method { GET, POST, PUT, DELETE, UNKNOWN }
+    public enum Method { GET, POST, PUT, DELETE, UNKNOWN }
     
-    enum ParseStage { StartLine, Header, Body }
+    enum ReadFlag { StartLine, Header, Body, End }
 
-    private ParseStage stage = ParseStage.StartLine;
+    private ReadFlag _readFlag = ReadFlag.StartLine;
     
-    private Method method = Method.GET;
-    private string path;
-    private string protocolVersion;
-    private HttpHeader headers = new HttpHeader();
-    public HttpRequest(string request)
+    public Method method = Method.GET;
+    public string path;
+    public string protocolVersion;
+    public HttpHeader headers = new();
+    private Dictionary<String, String> body;
+    private StringBuilder buffer = new();
+    private string contentType = null;
+
+    public bool Receive(string chunk)
     {
-        string boundary = null;
-        string line;
-        var reader = new StringReader(request);
-        while ((line = reader.ReadLine()) != null)
+        buffer.Append(chunk);
+        Console.WriteLine($"buffer: {buffer}");
+        int idx;
+        while ((idx = buffer.ToString().IndexOf("\n")) > -1)
         {
-            line = line.Trim();
-            switch (stage)
+            var line = buffer.ToString().Substring(0, idx);
+            Console.WriteLine($"line: {line}");
+            switch (_readFlag) 
             {
-                case ParseStage.StartLine:
-                    var splits = line.Split(" ");
-                    if (splits.Length == 3)
-                    {
-                        if (!Method.TryParse(splits[0], true, out method))
-                            method = Method.UNKNOWN;
-                        path = splits[1];
-                        protocolVersion = splits[2];
-                        stage += 1;
-                    }
+                case ReadFlag.StartLine:
+                    ReadStartLine(line);
                     break;
-                case ParseStage.Header:
-                    headers.Add(line);
-                    if (line.Length == 0 && !headers.isEmpty())
-                        stage += 1;
+                
+                case ReadFlag.Header:
+                    ReadHeaders(line);
                     break;
-                case ParseStage.Body:
-                    if (boundary == null)
-                    {
-                        var contentType = headers.Get("Content-Type");
-                        if (contentType.Contains("multipart/form-data;"))
-                        {
-                            boundary = contentType.Substring(contentType.IndexOf("boundary=") + "boundary=".Length);
-                        }
-                        // TODO; 어떻게? body도 Dictinary?
-                    }
+                
+                case ReadFlag.Body:
+                    ReadBody();
                     break;
             }
+            if (_readFlag != ReadFlag.Body) 
+                buffer.Remove(0, idx + 1);
+            
+            Console.WriteLine($"contains: {buffer.ToString().Contains("\n")}");
+            Console.WriteLine($"remain: {buffer.ToString().Length}");
         }
-        // Console.WriteLine(method);
-        // Console.WriteLine(path);
-        // Console.WriteLine(protocolVersion);
-        // Console.WriteLine(stage);
-        // Console.WriteLine(boundary);
+        Console.WriteLine($"End of Receive(): {_readFlag} / {idx}");
+        return _readFlag == ReadFlag.End;
+
+    }
+
+    private void ReadStartLine(string line)
+    {
+        var splits = line.Split(" ");
+        if (splits.Length == 3)
+        {
+            if (!Method.TryParse(splits[0], true, out method))
+                method = Method.UNKNOWN;
+            path = splits[1];
+            protocolVersion = splits[2];
+            _readFlag++;
+        }
+    }
+
+    private void ReadHeaders(string line)
+    {
+        headers.Add(line);
+        if (!line.Contains(":"))
+        {
+            int contentLength = Parser.ToInt(headers.Get("Content-Length"));
+            _readFlag = contentLength == 0 ? ReadFlag.End : ReadFlag.Body;
+        }
+    }
+    private void ReadBody()
+    {
+        if (contentType == null)
+            contentType = headers.Get("Content-Type");
+        
+        switch (contentType.ToLower())
+        {
+            case "application/x-www-form-urlencoded":
+                // percent-encoded 문자열을 풀어줌
+                Uri.UnescapeDataString(buffer.ToString()); 
+                break;
+            case "application/json":
+                break;
+            default:
+                throw new Exception("지원하지 않는 Content-Type입니다.");
+        }
+        // TODO: 바디 파싱 다되면 의미있게 readFlag 옮기기...
+        _readFlag++;
     }
 }

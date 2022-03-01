@@ -1,5 +1,3 @@
-using System.Collections.Generic;
-
 namespace WebServerProgram.Http;
 
 public class HttpHeader
@@ -16,20 +14,37 @@ public class HttpHeader
             dict.Add(key, value.ToString());
     }
 
+    public Dictionary<string, string> getDict()
+    {
+        return dict;
+    }
+
     public void Add(string line)
     {
-        var splits = line.Split(": ");
+        var splits = line.Split(":");
         if (splits.Length == 2)
-            Add(splits[0].ToLower(), splits[1]);
+            Add(splits[0].ToLower().Trim(), splits[1].Trim());
     }
 
     public string Get(string key)
     {
-        return dict[key.ToLower()];
+        try
+        {
+            return dict[key.ToLower()];
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
     }
 
     public bool isEmpty()
     {
         return dict.Count == 0;
+    }
+
+    public string ToString()
+    {
+        return dict.ToString();
     }
 }

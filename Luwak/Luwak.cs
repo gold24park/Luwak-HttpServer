@@ -1,8 +1,8 @@
-using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
-using System.Threading.Tasks;
+using System.Text;
 using WebServerProgram.Http;
 
 namespace WebServerProgram;
@@ -11,12 +11,6 @@ public class Luwak
 {
     private int port;
     private TcpListener listener;
-    private HttpServer httpServer;
-
-    public Luwak(HttpServer httpServer)
-    {
-        this.httpServer = httpServer;
-    }
 
     public async Task Start(int port = 8080)
     {
@@ -35,13 +29,40 @@ public class Luwak
         }
     }
     
-    private async void HandleConnection(object o)
+    private async Task HandleConnection(object o)
     {
-        TcpClient client = (TcpClient) o;
-        NetworkStream stream = client.GetStream();
-        await httpServer.process(stream);
+        try
+        {
+            TcpClient client = (TcpClient) o;
+            Process(client.GetStream());
+        }
+        catch (IOException)
+        {
+            Logger.Log("Connection closed.");
+            CountConnections();
+        }
+    }
+
+    private async Task Process(NetworkStream stream)
+    {
+        // TODO; 여기에서 일어나는 모든 Exception 다 돌리는 처리 필요
+        HttpRequest req = new HttpRequest();
+        
+        int totalByteCount = 0, readByteCount = 0;
+        byte[] buffer = new byte[24];
+        
+        while ((readByteCount = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+        {
+            totalByteCount += readByteCount;
+            Logger.Log($"Total byte count: {totalByteCount}");
+            var isEnd = req.Receive(Encoding.UTF8.GetString(buffer, 0, readByteCount));
+            if (isEnd) break;
+        }
+        HttpResponse res = new HttpResponse();
+        Console.WriteLine(res.PrintRequest(req));
+        byte[] writeBuffer = Encoding.UTF8.GetBytes(res.PrintRequest(req));
+        await stream.WriteAsync(writeBuffer, 0, writeBuffer.Length);
         stream.Close();
-        client.Close();
     }
     
     private void CountConnections()
@@ -56,6 +77,6 @@ public class Luwak
                 count++;
             }
         }
-        Console.WriteLine($"Active TCP Connections: {count}");
+        Logger.Log($"Active TCP Connections: {count}");
     }
 }
