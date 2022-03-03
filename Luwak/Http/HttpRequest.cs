@@ -1,6 +1,4 @@
 using System.Text;
-using System.Text.Encodings.Web;
-using System.Text.RegularExpressions;
 
 namespace WebServerProgram.Http;
 
@@ -17,18 +15,21 @@ public class HttpRequest
     public string protocolVersion;
     public HttpHeader headers = new();
     private Dictionary<String, String> body;
-    private StringBuilder buffer = new();
-    private string contentType = null;
+    private List<byte> buffer = new();
+    public byte[] content = new byte[0];
+    private int contentLength = 0;
 
-    public bool Receive(string chunk)
+    private const int NEW_LINE = 10;
+
+    public bool Receive(byte[] chunk)
     {
-        buffer.Append(chunk);
-        Console.WriteLine($"buffer: {buffer}");
+        buffer.AddRange(chunk.ToList());
         int idx;
-        while ((idx = buffer.ToString().IndexOf("\n")) > -1)
+        while ((idx = buffer.IndexOf(NEW_LINE)) > -1 && _readFlag < ReadFlag.Body)
         {
-            var line = buffer.ToString().Substring(0, idx);
-            Console.WriteLine($"line: {line}");
+            var line = Encoding.UTF8.GetString(buffer.GetRange(0, idx).ToArray());
+
+            buffer.RemoveRange(0, idx + 1);
             switch (_readFlag) 
             {
                 case ReadFlag.StartLine:
@@ -38,20 +39,13 @@ public class HttpRequest
                 case ReadFlag.Header:
                     ReadHeaders(line);
                     break;
-                
-                case ReadFlag.Body:
-                    ReadBody();
-                    break;
             }
-            if (_readFlag != ReadFlag.Body) 
-                buffer.Remove(0, idx + 1);
-            
-            Console.WriteLine($"contains: {buffer.ToString().Contains("\n")}");
-            Console.WriteLine($"remain: {buffer.ToString().Length}");
         }
-        Console.WriteLine($"End of Receive(): {_readFlag} / {idx}");
+        if (_readFlag == ReadFlag.Body)
+        {
+            ReadBody();
+        }
         return _readFlag == ReadFlag.End;
-
     }
 
     private void ReadStartLine(string line)
@@ -65,6 +59,10 @@ public class HttpRequest
             protocolVersion = splits[2];
             _readFlag++;
         }
+        else
+        {
+            throw new Exception("Startline 형식이 잘못되었습니다.");
+        }
     }
 
     private void ReadHeaders(string line)
@@ -72,27 +70,15 @@ public class HttpRequest
         headers.Add(line);
         if (!line.Contains(":"))
         {
-            int contentLength = Parser.ToInt(headers.Get("Content-Length"));
+            contentLength = Util.ToInt(headers.Get("Content-Length"));
             _readFlag = contentLength == 0 ? ReadFlag.End : ReadFlag.Body;
         }
     }
     private void ReadBody()
     {
-        if (contentType == null)
-            contentType = headers.Get("Content-Type");
-        
-        switch (contentType.ToLower())
-        {
-            case "application/x-www-form-urlencoded":
-                // percent-encoded 문자열을 풀어줌
-                Uri.UnescapeDataString(buffer.ToString()); 
-                break;
-            case "application/json":
-                break;
-            default:
-                throw new Exception("지원하지 않는 Content-Type입니다.");
-        }
-        // TODO: 바디 파싱 다되면 의미있게 readFlag 옮기기...
+        if (buffer.Count < contentLength)
+            return;
+        content = buffer.GetRange(0, contentLength).ToArray().Reverse().ToArray();
         _readFlag++;
     }
 }

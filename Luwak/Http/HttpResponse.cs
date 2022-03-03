@@ -20,13 +20,12 @@ public class HttpResponse
     public string PrintRequest(HttpRequest req)
     {
         StringBuilder hb = new StringBuilder();
-        foreach (string headerKey in req.headers.getDict().Keys)
+        foreach (string headerKey in req.headers.Keys)
         {
             hb.Append($"<li><b>{headerKey}</b> {req.headers.Get(headerKey)}</li>");
         }
-
         StringBuilder rb = new StringBuilder();
-        rb.Append("HTTP/1.1 200 OK\n");
+        rb.Append($"{PROTOCOL_VERSION} 200 OK\n");
         rb.Append("Content-Type: text/html;\n\n");
         rb.Append(@$"<html>
             <body style=""padding: 16px;"">
@@ -40,13 +39,9 @@ public class HttpResponse
                 <h3>Headers</h3>
                 <ul>{hb.ToString()}</ul>
                 <h3>Body</h3>
+                <pre style=""word-break: break-all;"">{Encoding.UTF8.GetString(req.content)}</pre>
             </body>
         </html>");
         return rb.ToString().Trim();
-    }
-
-    public string GetTestResponse()
-    {
-        return "HTTP/1.1 200 OK\r\nContent-Type: text/html;\r\n\r\n<html><body><h1>Hi</h1></body></html>";
     }
 }

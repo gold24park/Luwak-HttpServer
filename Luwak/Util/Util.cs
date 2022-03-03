@@ -1,6 +1,6 @@
 namespace WebServerProgram;
 
-public static class Parser
+public static class Util
 {
     public static int ToInt(string s)
     {
@@ -34,5 +34,14 @@ public static class Parser
         }
 
         return port;
+    }
+    
+    public static string ByteArrayToString(byte[] ba)
+    {
+        if (BitConverter.IsLittleEndian)
+            Array.Reverse(ba);
+
+        string hex = BitConverter.ToString(ba);
+        return hex.Replace("-", "");
     }
 }

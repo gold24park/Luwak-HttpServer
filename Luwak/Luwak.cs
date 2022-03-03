@@ -49,17 +49,19 @@ public class Luwak
         HttpRequest req = new HttpRequest();
         
         int totalByteCount = 0, readByteCount = 0;
-        byte[] buffer = new byte[24];
-        
+        byte[] buffer = new byte[4096];
+        byte[] tempBuffer = new byte[0];
         while ((readByteCount = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
         {
             totalByteCount += readByteCount;
-            Logger.Log($"Total byte count: {totalByteCount}");
-            var isEnd = req.Receive(Encoding.UTF8.GetString(buffer, 0, readByteCount));
+            Logger.Log($"ReadBytes: {readByteCount}");
+            Array.Resize(ref tempBuffer, readByteCount);
+            Array.Copy(buffer, tempBuffer, readByteCount);
+            var isEnd = req.Receive(tempBuffer);
             if (isEnd) break;
         }
+
         HttpResponse res = new HttpResponse();
-        Console.WriteLine(res.PrintRequest(req));
         byte[] writeBuffer = Encoding.UTF8.GetBytes(res.PrintRequest(req));
         await stream.WriteAsync(writeBuffer, 0, writeBuffer.Length);
         stream.Close();
