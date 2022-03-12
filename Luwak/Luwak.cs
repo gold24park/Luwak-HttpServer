@@ -1,9 +1,10 @@
 using System.Diagnostics;
 using System.Net;
-using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Text;
 using WebServerProgram.Http;
+using System.Threading.Tasks;
+using System;
 
 namespace WebServerProgram;
 
@@ -25,7 +26,7 @@ public class Luwak
             TcpClient client = await listener.AcceptTcpClientAsync();
             // ThreadPool에서 새로운 Thread를 생성할지, Queue에 넣고 기존의 Thread가 끝나길 기다릴지 결정
             Task.Factory.StartNew(HandleConnection, client);
-            CountConnections();
+            Util.CountConnections(port);
         }
     }
     
@@ -36,10 +37,10 @@ public class Luwak
             TcpClient client = (TcpClient) o;
             Process(client.GetStream());
         }
-        catch (IOException)
+        catch (Exception e)
         {
             Logger.Log("Connection closed.");
-            CountConnections();
+            Util.CountConnections(port);
         }
     }
 
@@ -54,31 +55,19 @@ public class Luwak
         while ((readByteCount = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
         {
             totalByteCount += readByteCount;
-            Logger.Log($"ReadBytes: {readByteCount}");
+            Logger.Log($"read: {readByteCount} bytes / total: {totalByteCount} bytes");
             Array.Resize(ref tempBuffer, readByteCount);
             Array.Copy(buffer, tempBuffer, readByteCount);
-            var isEnd = req.Receive(tempBuffer);
-            if (isEnd) break;
+
+            req.Receive(tempBuffer);
+
+            if (req.readFlag == HttpRequest.ReadFlag.End) break;
         }
+
 
         HttpResponse res = new HttpResponse();
         byte[] writeBuffer = Encoding.UTF8.GetBytes(res.PrintRequest(req));
         await stream.WriteAsync(writeBuffer, 0, writeBuffer.Length);
         stream.Close();
-    }
-    
-    private void CountConnections()
-    {
-        int count = 0;
-        IPGlobalProperties properties = IPGlobalProperties.GetIPGlobalProperties();
-        TcpConnectionInformation[] connections = properties.GetActiveTcpConnections();
-        foreach (TcpConnectionInformation c in connections)
-        {
-            if (c.RemoteEndPoint.Port == port)
-            {
-                count++;
-            }
-        }
-        Logger.Log($"Active TCP Connections: {count}");
     }
 }

@@ -1,5 +1,9 @@
-namespace WebServerProgram.Http;
 
+using System;
+using System.IO;
+using System.Collections.Generic;
+
+namespace WebServerProgram.Http {
 public class HttpHeader : Dictionary<string, string>
 {
 
@@ -27,4 +31,5 @@ public class HttpHeader : Dictionary<string, string>
             return null;
         }
     }
+}
 }

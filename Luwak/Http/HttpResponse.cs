@@ -24,6 +24,17 @@ public class HttpResponse
         {
             hb.Append($"<li><b>{headerKey}</b> {req.headers.Get(headerKey)}</li>");
         }
+
+        string bodyText = "";
+        if (req.content.Length > 0) {
+            bodyText = "<h3>Body</h3>";
+        }
+
+        string fileSizeText = "";
+        if (req.content.Length > 0 && !req.headers.Get("Content-Type").Contains("text")) {
+            fileSizeText = $"<b>Filesize</b> {Util.GetFileSize(req.content.Length)}<br><br><b>Content</b><br>";
+        }
+
         StringBuilder rb = new StringBuilder();
         rb.Append($"{PROTOCOL_VERSION} 200 OK\n");
         rb.Append("Content-Type: text/html;\n\n");
@@ -38,7 +49,8 @@ public class HttpResponse
                 </ul>
                 <h3>Headers</h3>
                 <ul>{hb.ToString()}</ul>
-                <h3>Body</h3>
+                {bodyText}
+                {fileSizeText}
                 <pre style=""word-break: break-all;"">{Encoding.UTF8.GetString(req.content)}</pre>
             </body>
         </html>");

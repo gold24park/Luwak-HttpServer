@@ -1,7 +1,7 @@
 using System.Text;
+using System;
 
 namespace WebServerProgram;
-
 public static class Logger
 {
     public enum Level
@@ -24,3 +24,4 @@ public static class Logger
         Console.WriteLine(messageBuilder);
     }
 }
+
