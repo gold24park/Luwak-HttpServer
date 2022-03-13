@@ -6,7 +6,7 @@ namespace WebServerProgram
     {
         public static void Main(string[] args)
         {
-            new Luwak().Start(Util.GetPort(args)).Wait();
+            new Luwak().Listen(Util.GetPort(args)).Wait();
         }
     }
 }

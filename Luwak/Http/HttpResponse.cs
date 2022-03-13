@@ -5,17 +5,9 @@ namespace WebServerProgram.Http;
 
 public class HttpResponse
 {
-    private const string PROTOCOL_VERSION = "HTTP/1.1";
     public HttpHeader Headers = new HttpHeader();
+    private const string PROTOCOL_VERSION = "HTTP/1.1";
     public int status = (int) HttpStatusCode.OK;
-
-    public string _body = HttpStatusCode.OK.ToString();
-
-    public string Body
-    {
-        set { _body = value; }
-        get { return _body; }
-    }
 
     public string PrintRequest(HttpRequest req)
     {
@@ -30,14 +22,9 @@ public class HttpResponse
             bodyText = "<h3>Body</h3>";
         }
 
-        string fileSizeText = "";
-        if (req.content.Length > 0 && !req.headers.Get("Content-Type").Contains("text")) {
-            fileSizeText = $"<b>Filesize</b> {Util.GetFileSize(req.content.Length)}<br><br><b>Content</b><br>";
-        }
-
         StringBuilder rb = new StringBuilder();
-        rb.Append($"{PROTOCOL_VERSION} 200 OK\n");
-        rb.Append("Content-Type: text/html;\n\n");
+        rb.Append($"{PROTOCOL_VERSION} 200 OK\r\n");
+        rb.Append("Content-Type: text/html;\r\n\r\n");
         rb.Append(@$"<html>
             <body style=""padding: 16px;"">
                 <h1>Your Request</h1>
@@ -50,7 +37,6 @@ public class HttpResponse
                 <h3>Headers</h3>
                 <ul>{hb.ToString()}</ul>
                 {bodyText}
-                {fileSizeText}
                 <pre style=""word-break: break-all;"">{Encoding.UTF8.GetString(req.content)}</pre>
             </body>
         </html>");

@@ -12,62 +12,74 @@ public class Luwak
 {
     private int port;
     private TcpListener listener;
-
-    public async Task Start(int port = 8080)
+    private bool isOpen = true;
+    
+    public async Task Listen(int port = 8080)
     {
+        isOpen = true;
         this.port = port;
         listener = new TcpListener(IPAddress.Any, port);
         listener.Start();
         
         Logger.Log($"서버가 시작되었습니다. port={port}");
-
-        while (true)
+        
+        TcpClient? client = null;
+        while (isOpen)
         {
-            TcpClient client = await listener.AcceptTcpClientAsync();
-            // ThreadPool에서 새로운 Thread를 생성할지, Queue에 넣고 기존의 Thread가 끝나길 기다릴지 결정
-            Task.Factory.StartNew(HandleConnection, client);
+            client = await listener.AcceptTcpClientAsync();
+            Task.Factory.StartNew(CreateConnection, client);
             Util.CountConnections(port);
         }
+        client?.Close();
+    }
+
+    public void Stop()
+    {
+        isOpen = false;
+        listener.Stop();
     }
     
-    private async Task HandleConnection(object o)
+    public async Task CreateConnection(object o)
     {
-        try
+        HttpServer server = new HttpServer();
+        TcpClient client = (TcpClient) o;
+        
+        server.OnConnect(client);
+
+        var readTask = ReadRequest(client);
+        var timeoutTask = Task.Delay(10 * 1000);
+        var doneTask = await Task.WhenAny(timeoutTask, readTask).ConfigureAwait(false);
+
+        if (doneTask == readTask)
         {
-            TcpClient client = (TcpClient) o;
-            Process(client.GetStream());
+            await server.OnRequest(readTask.Result, new HttpResponse());    
         }
-        catch (Exception e)
+        else
         {
-            Logger.Log("Connection closed.");
-            Util.CountConnections(port);
+            await server.OnError(500, "Timeout");
         }
     }
 
-    private async Task Process(NetworkStream stream)
+    private async Task<HttpRequest> ReadRequest(TcpClient client)
     {
-        // TODO; 여기에서 일어나는 모든 Exception 다 돌리는 처리 필요
-        HttpRequest req = new HttpRequest();
+        HttpRequestParser parser = new HttpRequestParser();
         
-        int totalByteCount = 0, readByteCount = 0;
+        int totalByteCount = 0;
+        int readByteCount = 0;
         byte[] buffer = new byte[4096];
         byte[] tempBuffer = new byte[0];
-        while ((readByteCount = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+        
+        while ((readByteCount = await client.GetStream().ReadAsync(buffer, 0, buffer.Length)) > 0)
         {
             totalByteCount += readByteCount;
             Logger.Log($"read: {readByteCount} bytes / total: {totalByteCount} bytes");
             Array.Resize(ref tempBuffer, readByteCount);
             Array.Copy(buffer, tempBuffer, readByteCount);
-
-            req.Receive(tempBuffer);
-
-            if (req.readFlag == HttpRequest.ReadFlag.End) break;
+    
+            parser.Receive(tempBuffer);
+            if (parser.readFlag == HttpRequestParser.ReadFlag.End) break;
         }
 
-
-        HttpResponse res = new HttpResponse();
-        byte[] writeBuffer = Encoding.UTF8.GetBytes(res.PrintRequest(req));
-        await stream.WriteAsync(writeBuffer, 0, writeBuffer.Length);
-        stream.Close();
+        return parser.GetRequest();
     }
 }

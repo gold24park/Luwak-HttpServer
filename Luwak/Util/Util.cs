@@ -5,21 +5,6 @@ namespace WebServerProgram;
 
 public static class Util
 {
-    private static readonly string[] SizeSuffixes = { "bytes", "KB", "MB", "GB" };
-
-    public static string GetFileSize(int value) {
-        if (value < 0) { return "-" + GetFileSize(-value); }
-
-        int i = 0;
-        decimal dValue = (decimal)value;
-        while (Math.Round(dValue / 1024) >= 1)
-        {
-            dValue /= 1024;
-            i++;
-        }
-        return string.Format("{0:n1}{1}", dValue, SizeSuffixes[i]);
-    }
-
     public static int ToInt(string s)
     {
         try
@@ -53,16 +38,6 @@ public static class Util
 
         return port;
     }
-    
-    public static string ByteArrayToString(byte[] ba)
-    {
-        if (BitConverter.IsLittleEndian)
-            Array.Reverse(ba);
-
-        string hex = BitConverter.ToString(ba);
-        return hex.Replace("-", "");
-    }
-
     public static void CountConnections(int port)
     {
         int count = 0;
