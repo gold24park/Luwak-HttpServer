@@ -6,7 +6,9 @@ namespace WebServerProgram
     {
         public static void Main(string[] args)
         {
-            new Luwak().Listen(Util.GetPort(args)).Wait();
+            var luwak = new Luwak();
+            luwak.RegisterRoute("/index", new FileIndex());
+            luwak.Listen(Util.GetPort(args)).Wait();
         }
     }
 }

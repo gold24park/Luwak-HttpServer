@@ -13,6 +13,7 @@ public class Luwak
     private int port;
     private TcpListener listener;
     private bool isOpen = true;
+    private List<RouteHandler> routeHandlers = new List<RouteHandler>();
     
     public async Task Listen(int port = 8080)
     {
@@ -41,7 +42,7 @@ public class Luwak
     
     public async Task CreateConnection(object o)
     {
-        HttpServer server = new HttpServer();
+        HttpServer server = new HttpServer(routeHandlers);
         TcpClient client = (TcpClient) o;
         
         server.OnConnect(client);
@@ -81,5 +82,20 @@ public class Luwak
         }
 
         return parser.GetRequest();
+    }
+
+    public void RegisterRoute(string path, RouteHandler routeHandler) {
+        if (IsDuplicatePath(path)) {
+            throw new Exception("동일한 Path를 등록하셨습니다.");
+        }
+        routeHandler.path = path;
+        routeHandlers.Add(routeHandler);
+    }
+
+    private bool IsDuplicatePath(string path) {
+        foreach (RouteHandler rh in routeHandlers) {
+            if (rh.path == path) return true;
+        }
+        return false;
     }
 }
