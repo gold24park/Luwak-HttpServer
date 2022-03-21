@@ -5,6 +5,41 @@ namespace WebServerProgram;
 
 public static class Util
 {
+
+    public static string GetMimeType(string fileName) {
+        int index = fileName.IndexOf(".");
+        if (index > -1) {
+            string ext = fileName.Substring(index + 1);
+            switch (ext) {
+                case "css":
+                    return "text/css";
+                case "html":
+                    return "text/html";
+                case "js":
+                    return "text/javascript";
+                case "gif":
+                    return "image/gif";
+                case "jpeg":
+                    return "image/jpeg";
+                case "png":
+                    return "image/png";
+                case "svg":
+                    return "image/svg+xml";
+                case "webp":
+                    return "image/webp";
+                case "jpg":
+                    return "image/jpeg";
+                case "wav":
+                    return "audio/wav";
+                case "webm":
+                    return "video/webm";
+                case "pdf":
+                    return "application/pdf";
+            }
+        }
+        return "application/octet-stream";
+    }
+
     public static int ToInt(string s)
     {
         try

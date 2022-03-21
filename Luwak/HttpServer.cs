@@ -1,5 +1,6 @@
 using System.Net.Sockets;
 using System.Text;
+using System.Text.RegularExpressions;
 using WebServerProgram.Http;
 
 namespace WebServerProgram;
@@ -27,20 +28,53 @@ public class HttpServer : IHttpServer
     }
     public async Task OnRequest(HttpRequest req, HttpResponse res)
     {
-        Logger.Log($"HttpServer::OnRequest - [{req.method}] {req.path}");
-        RouteHandler routeHandler = baseRouteHandler;
+        try {
+            Logger.Log($"HttpServer::OnRequest - [{req.method}] {req.path}");
+            RouteHandler routeHandler = baseRouteHandler;
 
-        foreach (RouteHandler rh in routeHandlers) {
-            if (rh.path == req.path) {
-                routeHandler = rh;
-                break;
+            foreach (RouteHandler rh in routeHandlers) {
+                if (IsPathMatches(rh.path, req.path)) {
+                    Logger.Log($"Found path {rh.path}");
+                    routeHandler = rh;
+                    break;
+                }
             }
+
+            routeHandler.Invoke(req, res);
+
+            // Response를 구성한다.
+            await WriteResponse(res);
+        } catch (Exception exception) {
+            this.OnError(exception);
+        }
+        
+    }
+
+    private bool IsPathMatches(string handlerPath, string requestPath) {        
+        if (handlerPath == requestPath) return true;
+
+        string regex = @"(?<path>.*)\?.*";
+
+        foreach(Match match in Regex.Matches(requestPath, regex)) {
+            requestPath = match.Groups["path"].Value;
         }
 
-        routeHandler.Invoke(req, res);
+        var idx = requestPath.LastIndexOf("/");
+        if (idx > 0) {
+            requestPath = requestPath.Substring(0, idx);
+        }
+        return handlerPath == requestPath;
+    }
 
-        // Response를 구성한다.
+    private async Task WriteResponse(HttpResponse res) {
         byte[] writeBuffer = Encoding.UTF8.GetBytes(BuildResponse(res));
+        if (res.content.Length > 0) {
+            // concat byte array
+            byte[] wb = new byte[writeBuffer.Length + res.content.Length];
+            Buffer.BlockCopy(writeBuffer, 0, wb, 0, writeBuffer.Length);
+            Buffer.BlockCopy(res.content, 0, wb, writeBuffer.Length, res.content.Length);
+            writeBuffer = wb;
+        }
         await stream.WriteAsync(writeBuffer, 0, writeBuffer.Length);
         stream.Close();
     }
@@ -51,16 +85,40 @@ public class HttpServer : IHttpServer
         foreach (string headerKey in res.headers.Keys) {
             sb.Append($"{headerKey}: {res.headers[headerKey]}\r\n");
         }
-        if (Util.ToInt(res.headers.Get("Content-Length")) > 0) {
-            sb.Append($"\r\n{res.content}");
-        }
-        return sb.ToString().Trim();
+        sb.Append("\r\n");
+        return sb.ToString();
     }
 
-    public async Task OnError(int statusCode, string message)
+    public async Task OnError(Exception exception)
     {
         // TODO: 에러났을때? 뭘할지...
-        Logger.Log($"error {statusCode} {message}");
-        stream.Close();
+        var res = new HttpResponse();
+        if (exception is FileNotFoundException) {
+            res.status = 404;
+            res.statusMessage = "File Not Found";
+        } 
+        else if (exception is TimeoutException) {
+            res.status = 408;
+            res.statusMessage = "Request Timeout";
+        }
+        else {
+            res.status = 500;
+            res.statusMessage = "Internal server error";
+        }
+        res.content = Encoding.UTF8.GetBytes(@$"
+        <html>
+            <head>
+                <meta charset=""UTF-8"">
+            </head>
+            <body style=""padding: 16px"">
+                <h1>{res.status} {res.statusMessage}</h1>
+                <b>{exception.Message}</b>
+                <pre>
+                    {exception.StackTrace}
+                </pre>
+            </body>
+        </html>
+        ");
+        await WriteResponse(res);
     }
 }

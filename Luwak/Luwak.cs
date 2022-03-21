@@ -57,7 +57,7 @@ public class Luwak
         }
         else
         {
-            await server.OnError(500, "Timeout");
+            await server.OnError(new TimeoutException());
         }
     }
 

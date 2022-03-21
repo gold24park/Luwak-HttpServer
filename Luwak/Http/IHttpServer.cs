@@ -7,5 +7,5 @@ interface IHttpServer
     void OnClose();
     Task OnRequest(HttpRequest req, HttpResponse res);
 
-    Task OnError(int statusCode, string message);
+    Task OnError(Exception exception);
 }

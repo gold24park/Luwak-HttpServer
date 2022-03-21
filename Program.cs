@@ -7,7 +7,8 @@ namespace WebServerProgram
         public static void Main(string[] args)
         {
             var luwak = new Luwak();
-            luwak.RegisterRoute("/index", new FileIndex());
+            luwak.RegisterRoute("/index", new FileIndexRouteHandler());
+            luwak.RegisterRoute("/download", new FileDownloadRouteHandler());
             luwak.Listen(Util.GetPort(args)).Wait();
         }
     }
