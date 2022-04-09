@@ -1,5 +1,5 @@
 # Luwak-HttpServer
-HTTP 프로토콜 공부 & C# 학습을 위해 만든 웹 서버입니다. 
+HTTP 프로토콜 공부 & C# 학습을 위해 외부 라이브러리 사용없이 만든 웹 서버입니다. 
 
 Luwak은 이 프로그램이 단순히 연습용 웹 서버가 아닌, 내가 node.js의 express나 python의 falcon 같은 프레임워크처럼 쉽게 쓰도록 만들자는 생각으로 붙인 이름입니다.
 
